@@ -79,19 +79,25 @@ class DocumentProcessingAgent:
             for name, info in AVAILABLE_TOOLS.items()
         ])
 
-        prompt = f"""You are a document analysis agent. 
+        prompt = f"""You are a document analysis agent.
 Read this document excerpt and decide which analysis tools to use.
 
 Available tools:
 {tool_descriptions}
 
-Always include: classify_document, extract_entities, summarise_document
-Conditionally include others based on document content.
+Rules for tool selection:
+- ALWAYS include: classify_document, extract_entities, summarise_document
+- Include check_date_consistency if the document mentions any dates
+- Include flag_anomalies if the document mentions incidents, faults, breaches, 
+  errors, or anything requiring attention
+- Include assess_risk if the document mentions severity, urgency, harm, 
+  financial impact, or required actions
 
 Return ONLY JSON:
 {{
-  "reasoning": "Brief explanation of what this document contains and why you chose these tools",
-  "selected_tools": ["tool1", "tool2", "tool3"],
+  "reasoning": "Brief explanation of what this document is and why you chose these tools",
+  "selected_tools": ["classify_document", "extract_entities", "flag_anomalies", 
+                     "check_date_consistency", "assess_risk", "summarise_document"],
   "expected_findings": "What you expect to find",
   "priority": "routine / elevated / urgent"
 }}
@@ -215,20 +221,28 @@ Document excerpt (first 400 chars):
         results_summary = json.dumps(results, indent=2)[:1500]
 
         prompt = f"""You are a document analysis agent completing your final report.
-You have analysed a document using multiple tools. Compile the findings.
+You have analysed a document using multiple specialised tools.
 
-Tool results:
+Tool results summary:
 {results_summary}
 
-Return ONLY JSON:
+Based on these results, compile a final report.
+Return ONLY valid JSON — every field must be populated:
 {{
-  "executive_summary": "2-3 sentence overall summary",
-  "document_type": "identified type",
-  "risk_level": "low/medium/high/critical",
-  "key_findings": ["finding 1", "finding 2", "finding 3"],
-  "entities_identified": {{"people": 0, "dates": 0, "locations": 0}},
-  "anomalies_found": ["anomaly 1"],
-  "recommended_actions": ["action 1", "action 2"],
+  "executive_summary": "Write 2-3 sentences summarising what this document 
+                        contains and what action is needed",
+  "document_type": "copy from classify_document results",
+  "risk_level": "copy from assess_risk results, or infer from flag_anomalies 
+                 overall_concern if assess_risk was not run",
+  "key_findings": ["Extract 3-5 specific facts found in the document"],
+  "entities_identified": {{
+    "people": 0,
+    "dates": 0,
+    "locations": 0
+  }},
+  "anomalies_found": ["List any anomalies from flag_anomalies results, 
+                       or empty list if none"],
+  "recommended_actions": ["List 2-3 specific actions from the tool results"],
   "processing_complete": true
 }}"""
 
