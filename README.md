@@ -3,7 +3,7 @@
 An AI agent that dynamically plans and executes multi-step document analysis
 using the Plan-Execute pattern. Different documents trigger different tool chains.
 
-Unlike fixed pipelines, the agent reasons about what to do — reading the document
+Unlike fixed pipelines, the agent reasons about what to do - reading the document
 first, deciding which tools are relevant, executing them in order with context
 passing between steps, then synthesising a structured report.
 
@@ -76,16 +76,16 @@ This gives reliable, auditable behaviour on consumer hardware.
 
 Three built-in samples demonstrate different tool chains:
 
-- **H&S Incident Report** — triggers all 6 tools, CRITICAL risk level
-- **IT Security Incident** — triggers anomaly detection, escalation flags
-- **Field Maintenance Report** — triggers date validation, equipment risk scoring
+- **H&S Incident Report** - triggers all 6 tools, CRITICAL risk level
+- **IT Security Incident** - triggers anomaly detection, escalation flags
+- **Field Maintenance Report** - triggers date validation, equipment risk scoring
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Agent Orchestration | LangChain + Plan-Execute pattern |
-| LLM | Ollama (llama3.2) — fully local |
+| LLM | Ollama (llama3.2) - fully local |
 | Backend | FastAPI + Uvicorn |
 | Frontend | Streamlit |
 | Document Loading | PyMuPDF |
@@ -109,7 +109,7 @@ pip install -r requirements.txt
 
 ## Running
 
-**Terminal 1 — Backend:**
+**Terminal 1 - Backend:**
 ```bash
 conda activate agent-processor
 cd backend
@@ -118,7 +118,7 @@ python main.py
 Backend: http://127.0.0.1:8080
 API docs: http://127.0.0.1:8080/docs
 
-**Terminal 2 — Frontend:**
+**Terminal 2 - Frontend:**
 ```bash
 conda activate agent-processor
 streamlit run app.py
@@ -174,10 +174,10 @@ assess risk (fraud indicators), summarise (claim overview).
 
 ## Related Projects
 
-- [pdf-extractor](https://github.com/Mr-Gilo/pdf-extractor) — Fixed pipeline PDF extraction
-- [rag-document-assistant](https://github.com/Mr-Gilo/rag-document-assistant) — RAG document Q&A
-- [multimodal-risk-pipeline](https://github.com/Mr-Gilo/multimodal-risk-pipeline) — Risk scoring
-- [document-extraction-finetuning](https://github.com/Mr-Gilo/document-extraction-finetuning) — LoRA fine-tuning
+- [pdf-extractor](https://github.com/Mr-Gilo/pdf-extractor) - Fixed pipeline PDF extraction
+- [rag-document-assistant](https://github.com/Mr-Gilo/rag-document-assistant) - RAG document Q&A
+- [multimodal-risk-pipeline](https://github.com/Mr-Gilo/multimodal-risk-pipeline) - Risk scoring
+- [document-extraction-finetuning](https://github.com/Mr-Gilo/document-extraction-finetuning) - LoRA fine-tuning
 
 ## Roadmap
 
