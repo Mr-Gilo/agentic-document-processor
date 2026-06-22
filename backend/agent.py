@@ -231,7 +231,7 @@ Return ONLY valid JSON — every field must be populated:
 {{
   "executive_summary": "Write 2-3 sentences summarising what this document 
                         contains and what action is needed",
-  "document_type": "copy from classify_document results",
+  "document_type": "the specific document type identified e.g. incident_report",
   "risk_level": "copy from assess_risk results, or infer from flag_anomalies 
                  overall_concern if assess_risk was not run",
   "key_findings": ["Extract 3-5 specific facts found in the document"],
