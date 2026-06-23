@@ -257,3 +257,120 @@ if st.button("🤖 Process with Agent", type="primary",
             st.error("Cannot connect to backend. Start it first.")
         except Exception as e:
             st.error(f"Error: {str(e)}")
+
+# Tab 2: PDF Upload
+st.divider()
+st.subheader("📄 Upload a PDF Document")
+uploaded_pdf = st.file_uploader(
+    "Upload a PDF for agentic processing",
+    type="pdf",
+    key="pdf_upload"
+)
+
+if uploaded_pdf:
+    if st.button("🤖 Process PDF with Agent", type="secondary",
+                 use_container_width=True):
+        with st.spinner("Extracting text and processing with agent..."):
+            try:
+                response = requests.post(
+                    f"{API_URL}/process-pdf",
+                    files={"file": (uploaded_pdf.name,
+                                   uploaded_pdf.getvalue(),
+                                   "application/pdf")},
+                    timeout=180
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    report = data.get("final_report", {})
+                    st.success(
+                        f"PDF processed: {data.get('source_filename')} — "
+                        f"{data['tools_called']} tools, "
+                        f"{data['total_duration_ms']/1000:.1f}s"
+                    )
+                    st.metric("Risk Level",
+                              report.get("risk_level", "Unknown").upper())
+                    st.info(report.get("executive_summary", ""))
+                    with st.expander("Full Results"):
+                        st.json(data)
+                else:
+                    st.error(response.json().get("detail", "Error"))
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+
+# Tab 3: Cache Stats
+st.divider()
+st.subheader("⚡ Cache Statistics")
+try:
+    r = requests.get(f"{API_URL}/cache/stats", timeout=3)
+    if r.status_code == 200:
+        stats = r.json()
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Cached Entries", stats["entries"])
+        c2.metric("Cache Hits", stats["hits"])
+        c3.metric("Cache Misses", stats["misses"])
+        c4.metric("Hit Rate", f"{stats['hit_rate']}%")
+        if st.button("Clear Cache"):
+            requests.delete(f"{API_URL}/cache/clear")
+            st.success("Cache cleared")
+            st.rerun()
+except Exception:
+    st.info("Start backend to see cache stats")
+
+# Tab 4: Compare Two Documents
+st.divider()
+st.subheader("⚖️ Compare Two Documents")
+st.markdown("Process two documents and compare their risk profiles side by side.")
+
+col_a, col_b = st.columns(2)
+with col_a:
+    label_a = st.text_input("Label A", value="Document A")
+    doc_a = st.text_area("Document A text", height=150, key="doc_a")
+with col_b:
+    label_b = st.text_input("Label B", value="Document B")
+    doc_b = st.text_area("Document B text", height=150, key="doc_b")
+
+if doc_a and doc_b:
+    if st.button("⚖️ Compare Documents", type="secondary",
+                 use_container_width=True):
+        with st.spinner("Processing both documents..."):
+            try:
+                response = requests.post(
+                    f"{API_URL}/compare",
+                    json={
+                        "document_a": doc_a,
+                        "document_b": doc_b,
+                        "label_a": label_a,
+                        "label_b": label_b
+                    },
+                    timeout=300
+                )
+                if response.status_code == 200:
+                    comp = response.json()
+                    summary = comp.get("comparison_summary", {})
+
+                    st.success("Comparison complete")
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric(f"{label_a} Risk",
+                              comp["document_a"]["risk_level"].upper()
+                              if comp["document_a"]["risk_level"] else "Unknown")
+                    m2.metric(f"{label_b} Risk",
+                              comp["document_b"]["risk_level"].upper()
+                              if comp["document_b"]["risk_level"] else "Unknown")
+                    m3.metric("Higher Risk", summary.get("higher_risk", "Unknown"))
+
+                    col_r1, col_r2 = st.columns(2)
+                    with col_r1:
+                        st.markdown(f"**{label_a} Key Findings**")
+                        for f in comp["document_a"].get("key_findings", []):
+                            st.markdown(f"- {f}")
+                    with col_r2:
+                        st.markdown(f"**{label_b} Key Findings**")
+                        for f in comp["document_b"].get("key_findings", []):
+                            st.markdown(f"- {f}")
+
+                    with st.expander("Full Comparison JSON"):
+                        st.json(comp)
+                else:
+                    st.error(response.json().get("detail", "Error"))
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
