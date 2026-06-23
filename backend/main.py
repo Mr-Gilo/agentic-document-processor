@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agent import DocumentProcessingAgent
 import uvicorn
+import sys
 import os
+sys.path.insert(0, os.path.dirname(__file__))
+from document_loader import extract_text_from_pdf
 
 app = FastAPI(
     title="Agentic Document Processor API",
@@ -63,6 +66,44 @@ async def process_document(request: DocumentRequest):
             detail=f"Agent processing failed: {str(e)}"
         )
 
+@app.post("/process-pdf")
+async def process_pdf(file: UploadFile = File(...)):
+    """
+    Upload a PDF and process it with the agentic pipeline.
+    Text is extracted then passed to the full Plan-Execute agent.
+    """
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported"
+        )
+
+    try:
+        file_bytes = await file.read()
+        text = extract_text_from_pdf(file_bytes)
+
+        if not text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="No text extracted. PDF may be image-based or scanned."
+            )
+
+        if len(text) > 10000:
+            text = text[:10000]
+
+        agent = DocumentProcessingAgent()
+        result = agent.process(text)
+        result["source_filename"] = file.filename
+        result["extracted_characters"] = len(text)
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF processing failed: {str(e)}"
+        )
 
 @app.get("/tools")
 def list_tools():
@@ -78,6 +119,19 @@ def list_tools():
             for name, info in AVAILABLE_TOOLS.items()
         ]
     }
+
+@app.get("/cache/stats")
+def cache_stats():
+    """Return cache hit rate and entry count."""
+    from cache import tool_cache
+    return tool_cache.stats()
+
+@app.delete("/cache/clear")
+def clear_cache():
+    """Clear the tool result cache."""
+    from cache import tool_cache
+    tool_cache.clear()
+    return {"status": "cleared"}
 
 
 if __name__ == "__main__":
