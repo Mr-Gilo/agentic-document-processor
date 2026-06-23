@@ -166,51 +166,51 @@ Document excerpt (first 400 chars):
             )
 
             try:
-    # Check cache first
-    cached = tool_cache.get(text, tool_name)
-    if cached:
-        duration = 0
-        result = cached
-        result["_cached"] = True
-        self._log(f"  {tool_name} served from cache")
-    else:
-        # Execute tool
-        if tool_name == "classify_document":
-            result = classify_document(text)
-            classification = result
-        elif tool_name == "extract_entities":
-            result = extract_entities(text)
-            entities = result
-        elif tool_name == "check_date_consistency":
-            result = check_date_consistency(text, entities)
-        elif tool_name == "flag_anomalies":
-            result = flag_anomalies(text, classification)
-        elif tool_name == "assess_risk":
-            anomalies = results.get("flag_anomalies")
-            result = assess_risk(text, classification, entities, anomalies)
-        elif tool_name == "summarise_document":
-            result = summarise_document(text, classification)
-        else:
-            result = {"status": "skipped", "reason": "unknown tool"}
+                # Check cache first
+                cached = tool_cache.get(text, tool_name)
+                if cached:
+                    duration = 0
+                    result = cached
+                    result["_cached"] = True
+                    self._log(f"  {tool_name} served from cache")
+                else:
+                    # Execute tool
+                    if tool_name == "classify_document":
+                        result = classify_document(text)
+                        classification = result
+                    elif tool_name == "extract_entities":
+                        result = extract_entities(text)
+                        entities = result
+                    elif tool_name == "check_date_consistency":
+                        result = check_date_consistency(text, entities)
+                    elif tool_name == "flag_anomalies":
+                        result = flag_anomalies(text, classification)
+                    elif tool_name == "assess_risk":
+                        anomalies = results.get("flag_anomalies")
+                        result = assess_risk(text, classification, entities, anomalies)
+                    elif tool_name == "summarise_document":
+                        result = summarise_document(text, classification)
+                    else:
+                        result = {"status": "skipped", "reason": "unknown tool"}
 
-        # Cache the result
-        if result.get("status") == "success":
-            tool_cache.set(text, tool_name, result)
+                # Cache the result
+                if result.get("status") == "success":
+                    tool_cache.set(text, tool_name, result)
 
-    duration = int((time.time() - start) * 1000)
-    step.result = result
-    step.duration_ms = duration
-    step.status = "complete"
-    results[tool_name] = result
-    self._log(f"  {tool_name} completed in {duration}ms")
+                duration = int((time.time() - start) * 1000)
+                step.result = result
+                step.duration_ms = duration
+                step.status = "complete"
+                results[tool_name] = result
+                self._log(f"  {tool_name} completed in {duration}ms")
 
-except Exception as e:
-    duration = int((time.time() - start) * 1000)
-    step.result = {"error": str(e)}
-    step.duration_ms = duration
-    step.status = "error"
-    results[tool_name] = {"status": "error", "error": str(e)}
-    self._log(f"  {tool_name} failed: {e}")
+            except Exception as e:
+                duration = int((time.time() - start) * 1000)
+                step.result = {"error": str(e)}
+                step.duration_ms = duration
+                step.status = "error"
+                results[tool_name] = {"status": "error", "error": str(e)}
+                self._log(f"  {tool_name} failed: {e}")
 
             self.execution_trace.append(step)
 
