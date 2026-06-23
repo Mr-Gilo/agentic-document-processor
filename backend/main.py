@@ -105,6 +105,26 @@ async def process_pdf(file: UploadFile = File(...)):
             detail=f"PDF processing failed: {str(e)}"
         )
 
+@app.post("/process-react")
+async def process_with_react(request: DocumentRequest):
+    """
+    Process document using ReAct agent pattern.
+    Compare with /process (Plan-Execute) to see the difference.
+    """
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Document text cannot be empty")
+
+    try:
+        from react_agent import ReActDocumentAgent
+        agent = ReActDocumentAgent()
+        result = agent.process(request.text)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"ReAct processing failed: {str(e)}"
+        )
+
 @app.get("/tools")
 def list_tools():
     """List all available agent tools and descriptions."""
@@ -133,6 +153,92 @@ def clear_cache():
     tool_cache.clear()
     return {"status": "cleared"}
 
+class CompareRequest(BaseModel):
+    document_a: str
+    document_b: str
+    label_a: str = "Document A"
+    label_b: str = "Document B"
+
+
+@app.post("/compare")
+async def compare_documents(request: CompareRequest):
+    """
+    Process two documents and return a structured comparison.
+    Useful for comparing similar incident reports or claim documents.
+    """
+    if not request.document_a.strip() or not request.document_b.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Both documents must contain text"
+        )
+
+    try:
+        agent_a = DocumentProcessingAgent()
+        agent_b = DocumentProcessingAgent()
+
+        result_a = agent_a.process(request.document_a)
+        result_b = agent_b.process(request.document_b)
+
+        report_a = result_a.get("final_report", {})
+        report_b = result_b.get("final_report", {})
+
+        comparison = {
+            "label_a": request.label_a,
+            "label_b": request.label_b,
+            "document_a": {
+                "document_type": report_a.get("document_type"),
+                "risk_level": report_a.get("risk_level"),
+                "executive_summary": report_a.get("executive_summary"),
+                "key_findings": report_a.get("key_findings", []),
+                "anomalies_found": report_a.get("anomalies_found", []),
+                "recommended_actions": report_a.get("recommended_actions", []),
+                "tools_called": result_a.get("tools_called"),
+                "duration_ms": result_a.get("total_duration_ms")
+            },
+            "document_b": {
+                "document_type": report_b.get("document_type"),
+                "risk_level": report_b.get("risk_level"),
+                "executive_summary": report_b.get("executive_summary"),
+                "key_findings": report_b.get("key_findings", []),
+                "anomalies_found": report_b.get("anomalies_found", []),
+                "recommended_actions": report_b.get("recommended_actions", []),
+                "tools_called": result_b.get("tools_called"),
+                "duration_ms": result_b.get("total_duration_ms")
+            },
+            "comparison_summary": {
+                "same_document_type": (
+                    report_a.get("document_type") == report_b.get("document_type")
+                ),
+                "risk_levels": {
+                    request.label_a: report_a.get("risk_level"),
+                    request.label_b: report_b.get("risk_level")
+                },
+                "higher_risk": (
+                    request.label_a
+                    if _risk_rank(report_a.get("risk_level")) >=
+                       _risk_rank(report_b.get("risk_level"))
+                    else request.label_b
+                ),
+                "total_anomalies": (
+                    len(report_a.get("anomalies_found", [])) +
+                    len(report_b.get("anomalies_found", []))
+                )
+            }
+        }
+
+        return comparison
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Comparison failed: {str(e)}"
+        )
+
+
+def _risk_rank(level: str) -> int:
+    return {"low": 1, "medium": 2, "high": 3, "critical": 4}.get(
+        str(level).lower(), 0
+    )
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=False)
