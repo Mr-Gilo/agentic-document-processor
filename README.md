@@ -187,7 +187,7 @@ assess risk (fraud indicators), summarise (claim overview).
 - [x] Execution trace with timing
 - [x] FastAPI backend with Swagger docs
 - [x] Streamlit frontend with reasoning visualisation
-- [ ] PDF upload support
-- [ ] Tool result caching
-- [ ] Multi-document comparison
-- [ ] ReAct agent variant for comparison
+- [x] PDF upload support
+- [x] Tool result caching
+- [x] Multi-document comparison
+- [x] ReAct agent variant for comparison
